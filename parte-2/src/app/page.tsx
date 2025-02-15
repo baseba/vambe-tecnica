@@ -19,21 +19,25 @@ export default function Dashboard() {
 
   const onDrop = (acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
-    Papa.parse(file, {
-      complete: (result) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    Papa.parse<string[]>(file, {
+      complete: (result: Papa.ParseResult<string[]>) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         console.log("Parsed CSV data:", result.data) // Log the parsed data for debugging
-        const parsedData: CallData[] = result.data
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const rows = result.data as string[][]
+        const parsedData: CallData[] = rows
           .slice(1) // Remove header row if present
-          .filter((row: any) => row.length >= 2) // Ensure row has at least 2 elements
-          .map((row: any, index: number) => {
+          .filter((row: string[]) => row.length >= 2) // Ensure row has at least 2 elements
+          .map((row: string[], index: number) => {
             if (typeof row[0] === "undefined" || typeof row[1] === "undefined") {
               console.warn(`Skipping row ${index + 1} due to missing data:`, row)
               return null
             }
             return {
               id: `call-${index + 1}`,
-              transcript: row[0]?.toString() || "",
-              saleClosed: row[1]?.toString().toLowerCase() === "true",
+              transcript: row[0] || "",
+              saleClosed: row[1].toLowerCase() === "true",
             }
           })
           .filter((item: CallData | null): item is CallData => item !== null)
@@ -41,7 +45,7 @@ export default function Dashboard() {
         setCallData(parsedData)
       },
       header: false,
-      error: (error) => {
+      error: (error: Papa.ParseError) => {
         console.error("Error parsing CSV:", error)
       },
     })
