@@ -3,12 +3,7 @@
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import Papa from "papaparse";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
   BarChart,
   Bar,
@@ -19,21 +14,19 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
 import { Upload } from "lucide-react";
 import type { ParseResult } from "papaparse";
+import CallDetailsTable from "~/components/CallsDetailsTable";
 
 interface CallData {
   id: string;
   transcript: string;
   saleClosed: boolean;
+  email: string;
+  name: string;
+  phone: string;
+  date: string;
+  vendor: string;
 }
 
 export default function Dashboard() {
@@ -42,32 +35,57 @@ export default function Dashboard() {
   const onDrop = (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
-
+    //DONT REMOVE NEXT LINE
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    Papa.parse(file, {
-      complete: (result) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    Papa.parse<string[]>(file, {
+      header: false,
+      complete: (result: Papa.ParseResult<string[]>) => {
+        //DONT REMOVE NEXT LINE
+        //eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         const rows = result.data;
-
         if (Array.isArray(rows)) {
           const parsedData: CallData[] = rows
-            .slice(1)
-            .filter((row): row is string[] => Array.isArray(row) && row.length >= 2)
+            .slice(1) // skip header row
+            .filter(
+              (row): row is string[] => Array.isArray(row) && row.length >= 7,
+            )
             .map((row, index) => {
-              const transcript = row[0];
-              const saleClosedStr = row[1];
+              const saleClosedStr = row[5];
+              const transcript = row[6];
+              const email = row[1];
+              const name = row[0];
+              const phone = row[2];
+              const date = row[3];
+              const vendor = row[4];
 
-              if (typeof transcript !== "string" || typeof saleClosedStr !== "string") {
-                console.warn(`Skipping row ${index + 1} due to invalid data:`, row);
+              if (
+                typeof saleClosedStr !== "string" ||
+                typeof transcript !== "string" ||
+                typeof email !== "string" ||
+                typeof name !== "string" ||
+                typeof phone !== "string" ||
+                typeof date !== "string" ||
+                typeof vendor !== "string"
+              ) {
+                console.warn(
+                  `Skipping row ${index + 1} due to invalid data:`,
+                  row,
+                );
                 return null;
               }
 
-              const saleClosed = saleClosedStr.toLowerCase() === "true";
+              const saleClosed = saleClosedStr.toLowerCase() === "1";
+              const dateFormated = new Date(date);
 
               return {
                 id: `call-${index + 1}`,
-                transcript: transcript,
-                saleClosed: saleClosed,
+                transcript,
+                saleClosed,
+                email,
+                name,
+                phone,
+                date: dateFormated.toDateString(),
+                vendor,
               };
             })
             .filter((item): item is CallData => item !== null);
@@ -77,8 +95,8 @@ export default function Dashboard() {
           console.error("Parsed data is not an array.");
         }
       },
-      header: false,
-      error: (error) => {
+      error: (error: Error, file: File) => {
+        console.error("Error parsing CSV file:", error, file);
         console.error("Error parsing CSV:", error);
       },
     });
@@ -98,7 +116,7 @@ export default function Dashboard() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Business Call Dashboard</h1>
+      <h1 className="mb-4 text-2xl font-bold">Business Call Dashboard</h1>
       <Card className="mb-4">
         <CardHeader>
           <CardTitle>Upload CSV File</CardTitle>
@@ -106,7 +124,7 @@ export default function Dashboard() {
         <CardContent>
           <div
             {...getRootProps()}
-            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer"
+            className="cursor-pointer rounded-lg border-2 border-dashed border-gray-300 p-8 text-center"
           >
             <input {...getInputProps()} />
             {isDragActive ? (
@@ -123,7 +141,7 @@ export default function Dashboard() {
 
       {callData.length > 0 && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle>Sales Overview</CardTitle>
@@ -160,9 +178,7 @@ export default function Dashboard() {
                     <p className="text-3xl font-bold">{openSales}</p>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold">
-                      Conversion Rate
-                    </h3>
+                    <h3 className="text-lg font-semibold">Conversion Rate</h3>
                     <p className="text-3xl font-bold">
                       {((closedSales / callData.length) * 100).toFixed(2)}%
                     </p>
@@ -177,26 +193,7 @@ export default function Dashboard() {
               <CardTitle>Call Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Transcript</TableHead>
-                    <TableHead>Sale Closed</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {callData.map((call) => (
-                    <TableRow key={call.id}>
-                      <TableCell>{call.id}</TableCell>
-                      <TableCell>
-                        {call.transcript.substring(0, 100)}...
-                      </TableCell>
-                      <TableCell>{call.saleClosed ? "Yes" : "No"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <CallDetailsTable callData={callData} />
             </CardContent>
           </Card>
         </>
