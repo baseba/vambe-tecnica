@@ -1,65 +1,100 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useDropzone } from "react-dropzone"
-import Papa from "papaparse"
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table"
-import { Upload } from "lucide-react"
+import { useState } from "react";
+import { useDropzone } from "react-dropzone";
+import Papa from "papaparse";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
+import { Upload } from "lucide-react";
+import type { ParseResult } from "papaparse";
 
 interface CallData {
-  id: string
-  transcript: string
-  saleClosed: boolean
+  id: string;
+  transcript: string;
+  saleClosed: boolean;
 }
 
 export default function Dashboard() {
-  const [callData, setCallData] = useState<CallData[]>([])
+  const [callData, setCallData] = useState<CallData[]>([]);
 
   const onDrop = (acceptedFiles: File[]) => {
-    const file = acceptedFiles[0]
+    const file = acceptedFiles[0];
+    if (!file) return;
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    Papa.parse<string[]>(file, {
-      complete: (result: Papa.ParseResult<string[]>) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        console.log("Parsed CSV data:", result.data) // Log the parsed data for debugging
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const rows = result.data as string[][]
-        const parsedData: CallData[] = rows
-          .slice(1) // Remove header row if present
-          .filter((row: string[]) => row.length >= 2) // Ensure row has at least 2 elements
-          .map((row: string[], index: number) => {
-            if (typeof row[0] === "undefined" || typeof row[1] === "undefined") {
-              console.warn(`Skipping row ${index + 1} due to missing data:`, row)
-              return null
-            }
-            return {
-              id: `call-${index + 1}`,
-              transcript: row[0] || "",
-              saleClosed: row[1].toLowerCase() === "true",
-            }
-          })
-          .filter((item: CallData | null): item is CallData => item !== null)
-        console.log("Processed data:", parsedData) // Log the processed data
-        setCallData(parsedData)
+    Papa.parse(file, {
+      complete: (result) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const rows = result.data;
+
+        if (Array.isArray(rows)) {
+          const parsedData: CallData[] = rows
+            .slice(1)
+            .filter((row): row is string[] => Array.isArray(row) && row.length >= 2)
+            .map((row, index) => {
+              const transcript = row[0];
+              const saleClosedStr = row[1];
+
+              if (typeof transcript !== "string" || typeof saleClosedStr !== "string") {
+                console.warn(`Skipping row ${index + 1} due to invalid data:`, row);
+                return null;
+              }
+
+              const saleClosed = saleClosedStr.toLowerCase() === "true";
+
+              return {
+                id: `call-${index + 1}`,
+                transcript: transcript,
+                saleClosed: saleClosed,
+              };
+            })
+            .filter((item): item is CallData => item !== null);
+
+          setCallData(parsedData);
+        } else {
+          console.error("Parsed data is not an array.");
+        }
       },
       header: false,
-      error: (error: Papa.ParseError) => {
-        console.error("Error parsing CSV:", error)
+      error: (error) => {
+        console.error("Error parsing CSV:", error);
       },
-    })
-  }
+    });
+  };
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+  });
 
-  const closedSales = callData.filter((call) => call.saleClosed).length
-  const openSales = callData.length - closedSales
+  const closedSales = callData.filter((call) => call.saleClosed).length;
+  const openSales = callData.length - closedSales;
 
   const chartData = [
     { name: "Closed Sales", value: closedSales },
     { name: "Open Sales", value: openSales },
-  ]
+  ];
 
   return (
     <div className="container mx-auto p-4">
@@ -125,8 +160,12 @@ export default function Dashboard() {
                     <p className="text-3xl font-bold">{openSales}</p>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold">Conversion Rate</h3>
-                    <p className="text-3xl font-bold">{((closedSales / callData.length) * 100).toFixed(2)}%</p>
+                    <h3 className="text-lg font-semibold">
+                      Conversion Rate
+                    </h3>
+                    <p className="text-3xl font-bold">
+                      {((closedSales / callData.length) * 100).toFixed(2)}%
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -150,7 +189,9 @@ export default function Dashboard() {
                   {callData.map((call) => (
                     <TableRow key={call.id}>
                       <TableCell>{call.id}</TableCell>
-                      <TableCell>{call.transcript.substring(0, 100)}...</TableCell>
+                      <TableCell>
+                        {call.transcript.substring(0, 100)}...
+                      </TableCell>
                       <TableCell>{call.saleClosed ? "Yes" : "No"}</TableCell>
                     </TableRow>
                   ))}
@@ -161,6 +202,5 @@ export default function Dashboard() {
         </>
       )}
     </div>
-  )
+  );
 }
-
