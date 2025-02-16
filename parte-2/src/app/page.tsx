@@ -17,6 +17,8 @@ import {
 import { Upload } from "lucide-react";
 import type { ParseResult } from "papaparse";
 import CallDetailsTable from "~/components/CallsDetailsTable";
+import ConversionRateByVendor from "~/components/ConversionRateByVendor";
+import SalesByMonth from "~/components/SalesByMonth";
 
 interface CallData {
   id: string;
@@ -154,7 +156,7 @@ export default function Dashboard() {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="value" fill="#8884d8" />
+                    <Bar dataKey="value" fill="#401F3E" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -167,19 +169,25 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h3 className="text-lg font-semibold">Total Calls</h3>
-                    <p className="text-3xl font-bold">{callData.length}</p>
+                    <p className="w-36 rounded-lg bg-[#3F2E56] p-2 text-3xl font-bold text-slate-200">
+                      {callData.length}
+                    </p>
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold">Closed Sales</h3>
-                    <p className="text-3xl font-bold">{closedSales}</p>
+                    <p className="w-36 rounded-lg bg-[#453F78] p-2 text-3xl font-bold text-slate-200">
+                      {closedSales}
+                    </p>
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold">Open Sales</h3>
-                    <p className="text-3xl font-bold">{openSales}</p>
+                    <p className="w-36 rounded-lg bg-[#759AAB] p-2 text-3xl font-bold text-slate-900">
+                      {openSales}
+                    </p>
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold">Conversion Rate</h3>
-                    <p className="text-3xl font-bold">
+                    <p className="w-36 rounded-lg bg-[#FAF2A1] p-2 text-3xl font-bold text-slate-900">
                       {((closedSales / callData.length) * 100).toFixed(2)}%
                     </p>
                   </div>
@@ -188,10 +196,14 @@ export default function Dashboard() {
             </Card>
           </div>
 
+          <ConversionRateByVendor callData={callData} />
+          <SalesByMonth callData={callData} />
+
           <Card>
             <CardHeader>
               <CardTitle>Call Details</CardTitle>
             </CardHeader>
+
             <CardContent>
               <CallDetailsTable callData={callData} />
             </CardContent>
